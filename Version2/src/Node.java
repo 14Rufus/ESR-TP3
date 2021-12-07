@@ -1,35 +1,35 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public class Node {
+public class Node implements Runnable{
 
     private ServerSocket socketEnviar;
-    private Socket socketReceber;
     private PrintWriter out;
     private BufferedReader in;
 
+    public Node(ServerSocket serverSocket, Socket clientSocket) throws IOException {
+        this.socketEnviar = serverSocket;
+        clientSocket = socketEnviar.accept();
+        this.out = new PrintWriter(clientSocket.getOutputStream(), true);
+        this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+    }
 
-    public void start(int port) throws IOException {
-        this.socketEnviar = new ServerSocket(port);
-        this.socketReceber = socketEnviar.accept();
-        this.out = new PrintWriter(socketReceber.getOutputStream(),true);
-        this.in = new BufferedReader(new InputStreamReader(socketReceber.getInputStream()));
-        String greeting = in.readLine();
-        if ("hello server".equals(greeting)){
-            out.println("hello client");
-        }
-        else{
-            out.println("unrecognized greeting");
+
+    public void run() {
+        try {
+            while(true) {
+                String greeting = in.readLine();
+                if ("hello server".equals(greeting)) {
+                    out.println("hello client");
+                } else {
+                    out.println("unrecognized greeting");
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
         }
     }
 
-    public static void main(String[] args) throws IOException {
-        Node n = new Node();
-        n.start(9999);
-    }
 
 }
