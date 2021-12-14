@@ -2,13 +2,13 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public class Node implements Runnable{
+public class OTTServerWorker implements Runnable{
 
     private ServerSocket socketEnviar;
     private PrintWriter out;
     private BufferedReader in;
 
-    public Node(ServerSocket serverSocket, Socket clientSocket) throws IOException {
+    public OTTServerWorker(ServerSocket serverSocket, Socket clientSocket) throws IOException {
         this.socketEnviar = serverSocket;
         clientSocket = socketEnviar.accept();
         this.out = new PrintWriter(clientSocket.getOutputStream(), true);
