@@ -1,6 +1,6 @@
 1. Ter programa que corra cliente+servidor ao mesmo tempo
-2. Ter cliente
-3. Ter servidor
+2. Ter cliente [check?]
+3. Ter servidor [check?]
 4. Definir método de construção de topologia - tentar bootstraper com ficheiro de configuração
 5. Verificar que a rede fica bem construída e está funcional
 6. Criar beacon handler
