@@ -26,17 +26,17 @@ def new_client(client_socket,addr):
     while True:
         data = client_socket.recv(1024)
         msg = data.decode('utf-8')
-        print('Connected by', addr)
+        #print('Connected by', addr)
         if not data:
             break
         elif "NEIGHBOURS" in msg:
             host = socket.gethostbyaddr(addr[0])
             for viz in VIZINHOS[host[0]]:
-                client_socket.send(bytes(f"NEIGHBOUR:{viz}",'utf-8'))
+                client_socket.sendall(bytes(f"NEIGHBOUR:{viz}",'utf-8'))
                 time.sleep(2)
         else:
             print(msg)
-        client_socket.sendall(bytes(f"Connection from {addr[0]} accepted",'utf-8'))
+        client_socket.sendall(bytes(f"Connected to server at {HOST}",'utf-8'))
     client_socket.close()
 
 

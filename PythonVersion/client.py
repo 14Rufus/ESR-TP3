@@ -8,6 +8,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
     s.sendall(bytes(f"Connecting from {HOST}",'utf-8'))
     while True:
-        s.send(bytes(input(),'utf-8'))
+        #s.send(bytes(input(),'utf-8'))
         data = s.recv(1024)
-        print(repr(data))
+        msg = data.decode('utf-8')
+        print(msg)
