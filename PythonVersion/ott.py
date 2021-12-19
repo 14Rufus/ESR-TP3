@@ -2,7 +2,7 @@ import sys
 import socket
 import threading as t
 import re
-
+from beacon_handler import Beacon
 
 HOST = socket.gethostbyname(socket.gethostname())
 
@@ -16,7 +16,8 @@ if sys.argv[1] == 'bootstrapper':
         while True:
             data = s.recv(1024)
             if not data:
-                print('Error')
+                print('EXITING NEIGHOUR GATHERING')
+                break
             else:
                 msg = data.decode('utf-8')
                 if "NEIGHBOUR" in msg:
@@ -25,13 +26,14 @@ if sys.argv[1] == 'bootstrapper':
                     vizinhos.append(viz)
                     print(viz)
 else:
-    SERVER_PORT = int(sys.argv[1])
+    SERVER_ADDRESS = sys.argv[1]
+    SERVER_PORT = int(sys.argv[2])
 
 
 def client_worker(addr,port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((addr, port))
-        s.sendall(bytes(input(),'utf-8'))
+        s.sendall(bytes('Hello','utf-8'))
         while True:
             data = s.recv(1024)
             msg = data.decode('utf-8')
@@ -45,19 +47,26 @@ def server_worker():
         with conn:
             print('Connected by', addr)
             while True:
-                data = conn.recv(1024)
-                print(data)
-                if not data:
-                    break
-                conn.sendall(data)
+                try:
+                    data = conn.recv(1024)
+                    print(data)
+                    if not data:
+                        break
+                    conn.sendall(data)
+                except KeyboardInterrupt:
+                    sys.exit()
 
 def main():
-    while True:
-        t1 = t.Thread(target=client_worker,args=(BOOTSTRAPPER_ADDRESS,SERVER_PORT))
-        t2 = t.Thread(target=server_worker)
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+    b = Beacon()
+    print('CREATING CLIENT THREAD FOR OTT')
+    t1 = t.Thread(target=client_worker,args=(BOOTSTRAPPER_ADDRESS,SERVER_PORT),daemon=True)
+    print('CREATING SERVER THREAD FOR OTT')
+    t2 = t.Thread(target=server_worker,daemon=True)
+    print('CREATING BEACON THREAD FOR OTT')
+    t3 = t.Thread(target=b.signal,args=(SERVER_ADDRESS,SERVER_PORT),daemon=True)    
+    t1.start()
+    t2.start()
+    t3.start()
+
 
 main()
