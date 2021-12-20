@@ -1,64 +1,54 @@
 import socket
 import sys
-import threading as t
-from xml.dom import minidom
-import time
+import threading
 
-HOST = socket.gethostbyname(socket.gethostname())  # Standard loopback interface address (localhost)
-PORT = int(sys.argv[1])        # Port to listen on (non-privileged ports are > 1023)
-CONFIG_FILE = sys.argv[2]
+class Server:
 
-VIZINHOS = {}
-routers = set()
+    def __init__(self):
+        self.vizinhos = {}
+        self.host = socket.gethostbyname(socket.gethostname())
+        self.TCP_PORT = 9999
+        self.UDP_PORT = 8888
 
-def read_config_file():
-    xmldoc = minidom.parse(CONFIG_FILE)
-    router_tag = xmldoc.getElementsByTagName('router')
-    for r in router_tag:
-        name_tag = r.getElementsByTagName('router_name')
-        name = name_tag[0].attributes['name'].value
-        vizinhos_tag = r.getElementsByTagName('router_ip')
-        vizinhos = []
-        for v in vizinhos_tag:
-            vizinhos.append(v.attributes['ip'].value)
-        VIZINHOS[name] = vizinhos
+    def new_connection(self,client_socket,addr):
+        while True:
+            try:
+                data = client_socket.recv(1024)
+                print('Connected by', addr)
+                if not data:
+                    break
+                else:
+                    print(data)
+                    #client_socket.sendall(bytes(f"Connected to server at {addr}",'utf-8'))
+            except KeyboardInterrupt:
+                client_socket.close()
 
-def new_client(client_socket,addr):
-    while True:
-        data = client_socket.recv(1024)
-        msg = data.decode('utf-8')
-        #print('Connected by', addr)
-        if not data:
-            break
-        elif "NEIGHBOURS" in msg:
-            host = socket.gethostbyaddr(addr[0])
-            routers.add(host[0])
-            for viz in VIZINHOS[host[0]]:
-                client_socket.sendall(bytes(f"NEIGHBOUR:{viz}",'utf-8'))
-                time.sleep(1)
-        elif "BEACON" in msg:
-            if host:=socket.gethostbyaddr(addr[0]) in routers:
-                client_socket.sendall(bytes("Confirmed Alive",'utf-8'))
-            else:
-                client_socket.sendall(bytes("Added to router list",'utf-8'))
-                routers.add(host[0])
-        else:
-            print(msg)
-        client_socket.sendall(bytes(f"Connected to server at {HOST}",'utf-8'))
-    client_socket.close()
+    def create_sockets(self,vizinhos):
+        aux = {}
+        for viz in vizinhos:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                # gethostbyname -> Devolve IP a partir do nome
+                ip = socket.gethostbyname(viz)
+                s.connect((ip,self.TCP_PORT))
+                s.sendall(bytes('ALIVE','utf-8'))
+                print(f'SENT ALIVE SIGNAL TO {ip}')
+            except Exception:
+                print(f'{viz} NO YET CONNECTED')
+            aux[ip] = s
+        return aux
 
-
-threads = []
-
-read_config_file()
-
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #stream = tcp    dgram = udp  inet = ipv4
-    s.bind((HOST, PORT))
-    s.listen()
-    while True:
-        conn, addr = s.accept()
-        print('NEW CLIENT CONNECTION')
-        new_c_thread = t.Thread(target=new_client,args=(conn,addr))
-        threads.append(new_c_thread)
-        new_c_thread.start()
-        new_c_thread.join()
+    def open_listen_tcp_socket(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s: #stream = tcp    dgram = udp  inet = ipv4
+            s.bind((self.host, self.TCP_PORT))
+            s.listen()
+            while True:
+                print('AWAITING NEW CLIENT CONNECTION')
+                conn, addr = s.accept()
+                threading.Thread(target=self.new_connection,args=(conn,addr),daemon=True).start()
+    
+    def start(self,vizinhos):
+        t = threading.Thread(target=self.open_listen_tcp_socket,daemon=True)
+        self.vizinhos = self.create_sockets(vizinhos)
+        t.start()
+        t.join()
