@@ -1,6 +1,7 @@
 import time, socket, sys, threading
 from packet import Packet
 from routes import RouteTable
+from clienthandler import ClientHandler
 
 class Node:
 
@@ -11,11 +12,14 @@ class Node:
         self.TCP_PORT = 9999
         self.UDP_PORT = 8888 
         self.rt = RouteTable()
+        self.ch = ClientHandler(self.host,self.vizinhos, self.rt)
 
     def start(self,vizinhos):
         t = threading.Thread(target=self.open_listen_tcp_socket,daemon=True)
+        c = threading.Thread(target=self.ch.handleRequests,daemon=True)
         t.start()
         self.vizinhos = self.create_sockets(vizinhos)
+        c.start()
         t.join()
 
 
@@ -46,6 +50,7 @@ class Node:
                             print(f'INFO: RECEIVED ALIVE SIGNAL FROM {origin_ip}')
                             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                             self.vizinhos[origin_ip] = s
+                            self.ch.updateVizinhos(origin_ip,s)
                             time.sleep(1)
                             s.connect((origin_ip,self.TCP_PORT))
                             self.connected.append(origin_ip)
@@ -54,16 +59,16 @@ class Node:
                         if self.rt.existsRoute(origin_ip) != 'None':
                             print('ERROR : ROUTE ALREADY EXISTS')
                         else:
-                            jumps = int(header_fields[3]) + 1 
-                            state = int(header_fields[4])
-                            route = header_fields[5]
+                            jumps = int(header_fields[2]) + 1 
+                            state = int(header_fields[3])
+                            route = header_fields[4]
                             if route == '':
                                 new_route = origin_ip
                             else:
                                 new_route = origin_ip + ',' + route
                             print('INFO: ADDED NEW ROUTE')
-                            self.rt.add_route(origin_ip,jumps,state,route)
-                            self.rout_neighbours(origin_ip,jumps,state,route)
+                            self.rt.add_route(origin_ip,jumps,state,new_route)
+                            self.rout_neighbours(origin_ip,jumps,state,new_route)
                     elif packet_type == 'ASK_ROUTING':
                             print(f'INFO: {origin_ip} ASKED FOR ROUTING TABLES')
                             if (route := self.rt.getShortestRoute()) != None:
@@ -75,6 +80,14 @@ class Node:
                                 print('INFO: ROUTING INFORMATION SENT')
                             else:
                                 print('WARNING: NO ROUTING TABLE INFORMATION FOUND')
+                    elif packet_type == 'PING':
+                        closest_ip = self.rt.getShortestRoute()
+                        route = self.rt.getPercurso(closest_ip)
+                        ips = route.split(',')
+                        next_ip = ips[0]
+                        print(f'INFO: PING FROM {origin_ip} NOW GOING TO {next_ip}')
+                        p = Packet(self.host,4)
+                        self.vizinhos[next_ip].send(p.encode())
                     else:
                         print('ERROR: Unknow Packet Type')
 
@@ -96,6 +109,7 @@ class Node:
                 print(f'INFO: ASKING {viz} FOR ROUTING TABLES')
                 self.connected.append(ip)
                 aux[ip] = s
+                self.ch.updateVizinhos(ip,s)
             except Exception:
                 print(f'WARNING: {viz} NOT YET CONNECTED')
                 aux[ip] = None

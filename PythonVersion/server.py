@@ -31,9 +31,10 @@ class Server:
                         else:
                             print(f'INFO: {origin_ip} ALREADY CONNECTED TO SERVER')
                     elif packet_type == 'ASK_ROUTING':
-                        print(f'{origin_ip} ASKED FOR ROUTING TABLES')
+                        print(f'INFO: {origin_ip} ASKED FOR ROUTING TABLES')
                         self.routing_signaler()
-
+                    elif packet_type == 'PING':
+                        print(f'INFO: GOT PING FROM {origin_ip}')
             except Exception as e:
                 print(e)
                 print('ERROR: Unknow Packet Type')
@@ -53,7 +54,7 @@ class Server:
                 aux[ip] = s
             except Exception:
                 aux[ip] = None
-                print(f'INFO: WARNING: {viz} NOT YET CONNECTED')
+                print(f'WARNING: {viz} NOT YET CONNECTED')
         return aux
 
     def open_listen_tcp_socket(self):
