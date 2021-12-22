@@ -35,6 +35,9 @@ class Server:
                         self.routing_signaler()
                     elif packet_type == 'PING':
                         print(f'INFO: GOT PING FROM {origin_ip}')
+                    elif packet_type == 'GET':
+                        content = header_fields[2]
+                        udp_thread = threading.Thread(target=self.open_send_udp_socket,args=(content, origin_ip),daemon=True).start()
             except Exception as e:
                 print(e)
                 print('ERROR: Unknow Packet Type')
@@ -48,7 +51,7 @@ class Server:
                 ip = socket.gethostbyname(viz)
                 s.connect((ip,self.TCP_PORT))
                 p = Packet(self.host,1)
-                s.sendall(p.encode())
+                s.sendall(p.encodeRequest())
                 print(f'INFO: SENDING ALIVE SIGNAL TO {viz}@{ip}')
                 self.connected.append(ip)
                 aux[ip] = s
@@ -66,21 +69,28 @@ class Server:
                 print('INFO: RECEIVED NEW CLIENT CONNECTION')
                 threading.Thread(target=self.new_connection,args=(conn,addr),daemon=True).start()
     
+    def open_send_udp_socket(self,req,address):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            try:
+                print(f'INFO: GET REQUEST FROM {address}')
+                s.sendto(bytes(req,'utf-8'), (address,self.UDP_PORT))
+            except Exception as e:
+                print(e)
+                print('UDP TRANSFER WENT WRONG')
+        
     def routing_signaler(self):
-        #while True:
-            time.sleep(2)
-            for ip,s in self.vizinhos.items():
-                if len(self.connected) != 0:
-                    #s = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
-                    try:
-                        p = Packet(self.host, 2)
-                        # metrica  estado  percurso
-                        s.sendall(p.encodeRouting(0,0,''))
-                        print(f'INFO: SENT ROUTING SIGNAL TO {ip} FROM {self.host}')
-                    except Exception as e:
-                        self.connected.remove(ip)
-                        print(e)
-                        print('ERROR: No Routing Signal sent')
+        time.sleep(2)
+        for ip,s in self.vizinhos.items():
+            if len(self.connected) != 0:
+                try:
+                    p = Packet(self.host, 2)
+                    # metrica  estado  percurso
+                    s.sendall(p.encodeRouting(0,0,''))
+                    print(f'INFO: SENT ROUTING SIGNAL TO {ip} FROM {self.host}')
+                except Exception as e:
+                    self.connected.remove(ip)
+                    print(e)
+                    print('ERROR: No Routing Signal sent')
 
     def start(self,vizinhos):
         t = threading.Thread(target=self.open_listen_tcp_socket,daemon=True)

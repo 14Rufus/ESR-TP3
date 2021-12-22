@@ -17,9 +17,11 @@ class Node:
     def start(self,vizinhos):
         t = threading.Thread(target=self.open_listen_tcp_socket,daemon=True)
         c = threading.Thread(target=self.ch.handleRequests,daemon=True)
+        udp = threading.Thread(target=self.open_listen_udp_socket,daemon=True)
         t.start()
         self.vizinhos = self.create_sockets(vizinhos)
         c.start()
+        udp.start()
         t.join()
 
 
@@ -28,11 +30,17 @@ class Node:
             s.bind((self.host,self.TCP_PORT))
             s.listen()
             while True:
-                #print('Listening for new connections')
                 conn, addr = s.accept()
                 t = threading.Thread(target=self.open_send_tcp_socket,args=(conn,addr),daemon=True)
                 t.start()
 
+    def open_listen_udp_socket(self):
+        print('UDP PORT LISTENING')
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.bind((self.host,self.UDP_PORT))
+            while True:
+                data, addr = s.recvfrom(20480)
+                print(data.decode('utf-8'))
 
     def open_send_tcp_socket(self,conn,addr):
         while data := conn.recv(1024):
@@ -87,7 +95,16 @@ class Node:
                         next_ip = ips[0]
                         print(f'INFO: PING FROM {origin_ip} NOW GOING TO {next_ip}')
                         p = Packet(self.host,4)
-                        self.vizinhos[next_ip].send(p.encode())
+                        self.vizinhos[next_ip].sendall(p.encodeRequest())
+                    elif packet_type == 'GET':
+                        content = header_fields[2]
+                        closest_ip = self.rt.getShortestRoute()
+                        route = self.rt.getPercurso(closest_ip)
+                        ips = route.split(',')
+                        next_ip = ips[0]
+                        print(f'INFO: GET REQUEST FROM {origin_ip} NOW GOING TO {next_ip}')
+                        p = Packet(self.host, 5)
+                        self.vizinhos[next_ip].sendall(p.encodeGetRequest(content))
                     else:
                         print('ERROR: Unknow Packet Type')
 
@@ -101,11 +118,11 @@ class Node:
                 ip = socket.gethostbyname(viz)
                 s.connect((ip,self.TCP_PORT))
                 p = Packet(self.host,1)
-                s.sendall(p.encode())
+                s.sendall(p.encodeRequest())
                 print(f'INFO: SENDING ALIVE SIGNAL TO {viz}@{ip}')
                 p2 = Packet(self.host, 3)
                 time.sleep(1)
-                s.sendall(p2.encode())
+                s.sendall(p2.encodeRequest())
                 print(f'INFO: ASKING {viz} FOR ROUTING TABLES')
                 self.connected.append(ip)
                 aux[ip] = s
@@ -121,9 +138,7 @@ class Node:
                 if ip == oip or ip not in self.connected:
                     continue
                 else:
-                    #s = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
                     try:
-                        #s.connect((ip,self.TCP_PORT))
                         p = Packet(self.host, 2)
                         s.sendall(p.encodeRouting(jumps,state,route))
                         print(f'INFO: SENT ROUTING SIGNAL TO {ip} FROM {self.host}')

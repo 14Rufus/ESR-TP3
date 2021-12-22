@@ -55,10 +55,13 @@ class RouteTable:
         minimum = 9999
         selected = None
         for ip in self.routes.keys():
-            if v:=self.routes[ip]['jumps'] < minimum:
+            if (v:=self.routes[ip]['jumps']) < minimum:
                 minimum = v
                 selected = ip
         return selected
             
     def existsRoute(self,ip):
         return self.routes.get(ip, 'None')
+    
+    def getTable(self):
+        return self.routes
