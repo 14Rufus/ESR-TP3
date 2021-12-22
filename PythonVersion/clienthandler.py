@@ -1,7 +1,7 @@
-import socket
-import time
+import socket, time , threading, util
 from routes import RouteTable
 from packet import Packet
+from udp_packet import PacketUDP
 
 class ClientHandler():
 
@@ -9,36 +9,57 @@ class ClientHandler():
         self.ip = ip
         self.vizinhos = vizinhos
         self.rt = rotas
-        self.TCP_PORT = 9999
         self.UDP_PORT = 8888
 
     def handleRequests(self):
         while True:
-            req = input('SERVER>>')
+            req = input(f'{util.bcolors.OKGREEN}SERVER>>{util.bcolors.ENDC}')
             if (closest_ip := self.rt.getShortestRoute()) != None:
                 if req.upper() == 'PING':
                     route = self.rt.getPercurso(closest_ip)
-                    ips = route.split(',')
-                    next_ip = ips[0]
+                    next_ip = route[0]
                     print(f'PINGING {next_ip}')
                     p = Packet(self.ip,4)
-                    self.vizinhos[next_ip].send(p.encode())
+                    self.vizinhos[next_ip].sendall(p.encodeRequest())
                 elif req.upper() == 'TABLE':
                     print(self.rt.getTable())
                 elif req.upper() == 'CLOSEST':
-                    if (closest_ip := self.rt.getShortestRoute()) != None:
-                        print(closest_ip)
-                    else:
-                        print('WARNING: NO ROUTE AVAIABLE')
+                    print(closest_ip)
+                elif req.upper() == 'SETUP':
+                    route = self.rt.getPercurso(closest_ip)
+                    next_ip = route[0]
+                    print(f'{util.bcolors.OKBLUE}INFO: LOOKING FOR AVAIABLE ROUTE{util.bcolors.ENDC}')
+                    p = Packet(self.ip, 7)
+                    ip_destino = self.rt.getServerAddress(closest_ip)
+                    try:
+                        self.vizinhos[next_ip].sendall(p.encodeAliveMessage(self.ip,ip_destino,self.ip))
+                    except Exception:
+                        print(f'{util.bcolors.WARNING}WARNING: NEIGHBOUR NOT CONNECTED{util.bcolors.ENDC}')
                 elif 'GET' in req.upper():
                     route = self.rt.getPercurso(closest_ip)
-                    ips = route.split(',')
-                    next_ip = ips[0]
+                    next_ip = route[0]
                     content = req[4:]
-                    p = Packet(self.ip,5)
-                    self.vizinhos[next_ip].send(p.encodeGetRequest(content))
+                    if content in self.rt.getFilesAvaiable(closest_ip):
+                        p = Packet(self.ip,6)
+                        self.vizinhos[next_ip].sendall(p.encodeGetRequest(content,self.ip))
+                        threading.Thread(target=self.udp_listener,daemon=True).start()
+                    else:
+                        print(f'{util.bcolors.WARNING}WARNING: FILE NOT AVAIABLE{util.bcolors.ENDC}')
             else:
-                print('WARNING: NO ROUTE AVAIABLE')
+                print(f'{util.bcolors.WARNING}WARNING: NO ROUTE AVAIABLE{util.bcolors.ENDC}')
 
     def updateVizinhos(self,ip,socket):
         self.vizinhos[ip] = socket
+
+    def udp_listener(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.bind((self.ip,self.UDP_PORT))
+            while True:
+                data, addr = s.recvfrom(20480)
+                p = PacketUDP(self.ip)
+                # ip_quem_enviou, ip_final, counter, total_pacotes, conteudo
+                pacote = data.decode('utf-8')
+                fields = pacote.split(';')
+                counter = int(fields[2])
+                num_of_packets = float(fields[3])
+                content = fields[4].encode('ascii','ignore')

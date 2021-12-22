@@ -13,7 +13,11 @@ class Packet:
             2 : 'ROUTING',
             3 : 'ASK_ROUTING',
             4 : 'PING',
-            5 : 'GET'
+            5 : 'SETUP',
+            6 : 'GET',
+            7 : 'IS_ALIVE',
+            8 : 'AM_ALIVE',
+            9 : 'SHUTDOWN'
         }
         return tipos[tipo]
 
@@ -21,10 +25,14 @@ class Packet:
         msg = self.origin_ip + ';' + self.packet_type
         return bytes(msg,'utf-8')
 
-    def encodeRouting(self,routing_value,state,percurso):
-        msg = self.origin_ip + ';' + self.packet_type + ';' + str(routing_value) + ';' + str(state) + ';' + percurso 
+    def encodeRouting(self,server_ip,routing_value,state,percurso,ficheiros):
+        msg = self.origin_ip + ';' + self.packet_type + ';' + server_ip + ';'  + str(routing_value) + ';' + str(state) + ';' + percurso + ';' + ficheiros
         return bytes(msg,'utf-8')
 
-    def encodeGetRequest(self,content):
-        msg = self.origin_ip + ';' + self.packet_type + ';' + content
+    def encodeGetRequest(self,content,ip_origem):
+        msg = self.origin_ip + ';' + self.packet_type + ';' + content + ';' + ip_origem
+        return bytes(msg,'utf-8')
+
+    def encodeAliveMessage(self,ip_origem,ip_destino,percurso):
+        msg = self.origin_ip + ';' + self.packet_type + ';' + ip_origem + ';' + ip_destino + ';' + percurso
         return bytes(msg,'utf-8')
