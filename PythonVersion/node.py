@@ -25,6 +25,7 @@ class Node:
         c.start()
         try:
             t.join()
+            c.join()
         except KeyboardInterrupt:
             print(f'{util.bcolors.WARNING}SHUTTING DOWN{util.bcolors.ENDC}')
 
@@ -188,7 +189,7 @@ class Node:
                             self.vizinhos[next_ip].sendall(p.encodeGetRequest(content,ip_origem))
                             time.sleep(1)
                         udp.start()
-                        udp.join()
+                        #udp.join()
                     
                     elif packet_type == 'DEACTIVATE':
                         self.rt.setRouteInactive(origin_ip)

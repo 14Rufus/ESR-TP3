@@ -66,6 +66,12 @@ class Server:
                             self.udp_socket.close()
                             self.streaming = False
 
+                    elif packet_type == 'DEACTIVATE':
+                        if self.streaming:
+                            print(f'{util.bcolors.OKBLUE}INFO: CLIENT STOPPED STREAMING')
+                            self.udp_socket.close()
+                            self.streaming = False
+
             except Exception as e:
                 print(e)
                 print(F'{util.bcolors.FAIL}ERROR: Unknow Packet Type{util.bcolors.ENDC}')
@@ -122,7 +128,7 @@ class Server:
                                     p = PacketUDP(self.host,1)
                                     print(f'{util.bcolors.OKBLUE}INFO: SENT PACKET #{counter}{util.bcolors.ENDC}')
                                     s.sendto(p.encodeData(ip_destino,counter,num_of_packets,content), (address,self.UDP_PORT))
-                                    time.sleep(0.35)
+                                    time.sleep(0.4)
                                     line_c = 0
                                     content = ''
                             # SEND SHUTDOWN UDP CONNECTION PACKET

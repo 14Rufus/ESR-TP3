@@ -20,13 +20,16 @@ class ClientHandler():
                     if req.upper() == 'PING':
                         route = self.rt.getPercurso(closest_ip)
                         next_ip = route[0]
-                        print(f'PINGING {next_ip}')
+                        print(f'{util.bcolors.OKBLUE}INFO: PINGING {next_ip}{util.bcolors.ENDC}')
                         p = Packet(self.ip,4)
                         self.vizinhos[next_ip].sendall(p.encodeRequest())
+                    
                     elif req.upper() == 'TABLE':
                         print(self.rt.getTable())
+                    
                     elif req.upper() == 'CLOSEST':
                         print(closest_ip)
+                    
                     elif req.upper() == 'SETUP':
                         route = self.rt.getPercurso(closest_ip)
                         next_ip = route[0]
@@ -37,6 +40,7 @@ class ClientHandler():
                             self.vizinhos[next_ip].sendall(p.encodeAliveMessage(self.ip,ip_destino,self.ip))
                         except Exception:
                             print(f'{util.bcolors.WARNING}WARNING: NEIGHBOUR NOT CONNECTED{util.bcolors.ENDC}')
+                    
                     elif 'GET' in req.upper():
                         route = self.rt.getPercurso(closest_ip)
                         next_ip = route[0]
@@ -45,13 +49,21 @@ class ClientHandler():
                             if content in self.rt.getFilesAvaiable(closest_ip):
                                 p = Packet(self.ip,6)
                                 self.vizinhos[next_ip].sendall(p.encodeGetRequest(content,self.ip))
-                                threading.Thread(target=self.udp_listener,daemon=True).start()
+                                client_udp = threading.Thread(target=self.udp_listener,daemon=True)
+                                client_udp.start()
+                                time.sleep(0.5)
+                                try:
+                                    client_udp.join()
+                                except Exception:
+                                    print(f'{util.bcolors.WARNING}WARNING: EXITING STREAM{util.bcolors.ENDC}')
                             else:
                                 print(f'{util.bcolors.WARNING}WARNING: FILE NOT AVAIABLE{util.bcolors.ENDC}')
                         else:
                             print(f'{util.bcolors.WARNING}WARNING: NO ROUTES AVAIABLE{util.bcolors.ENDC}')
+                    
                     else:
                         pass
+
                 else:
                     print(f'{util.bcolors.WARNING}WARNING: NO ROUTE AVAIABLE{util.bcolors.ENDC}')
 
