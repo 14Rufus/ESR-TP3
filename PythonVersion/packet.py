@@ -17,7 +17,8 @@ class Packet:
             6 : 'GET',
             7 : 'IS_ALIVE',
             8 : 'AM_ALIVE',
-            9 : 'SHUTDOWN'
+            9 : 'SHUTDOWN',
+            10 : 'DEACTIVATE'
         }
         return tipos[tipo]
 

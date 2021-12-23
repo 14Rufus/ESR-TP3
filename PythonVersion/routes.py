@@ -45,6 +45,9 @@ class RouteTable:
 
     def setRouteActive(self,ip_origem):
         self.routes[ip_origem]['state'] = 1
+    
+    def setRouteInactive(self,ip_origem):
+        self.routes[ip_origem]['state'] = 0
 
     def getJumps(self,ip):
         return self.routes[ip]['jumps']
@@ -81,4 +84,5 @@ class RouteTable:
         return self.routes
 
     def updateOnNeighbourShutdown(self,origin_ip):
-        self.routes.pop(origin_ip)
+        if origin_ip in self.routes:
+            del self.routes[origin_ip]
