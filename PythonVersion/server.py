@@ -100,7 +100,6 @@ class Server:
     
     def open_send_udp_socket(self,req,address,ip_destino):
         time.sleep(2)
-        f = open(req)
         file_size = os.path.getsize(req)
         num_of_packets = max(util.round_half_up(file_size/4096),1)
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
@@ -109,24 +108,33 @@ class Server:
             try:
                 print(f'{util.bcolors.OKBLUE}INFO: GET REQUEST FROM {address} TO SEND TO  {ip_destino}{util.bcolors.ENDC}')
                 counter = 0
-                while counter < num_of_packets:
-                    if address in self.connected:
-                        try:
+                #while counter < num_of_packets:
+                if address in self.connected:
+                    try:
+                        with open(req) as f:
+                            line_c = 0
+                            content = ''
                             while line := f.readline():
-                                counter +=  1
-                                p = PacketUDP(self.host,1)
-                                print(f'{util.bcolors.OKBLUE}INFO: SENT PACKET #{counter}{util.bcolors.ENDC}')
-                                s.sendto(p.encodeData(ip_destino,counter,num_of_packets,line), (address,self.UDP_PORT))
-                                time.sleep(0.15)
+                                content += line + '\n'
+                                line_c += 1
+                                if line_c ==  14:
+                                    counter +=  1
+                                    p = PacketUDP(self.host,1)
+                                    print(f'{util.bcolors.OKBLUE}INFO: SENT PACKET #{counter}{util.bcolors.ENDC}')
+                                    s.sendto(p.encodeData(ip_destino,counter,num_of_packets,content), (address,self.UDP_PORT))
+                                    time.sleep(0.35)
+                                    line_c = 0
+                                    content = ''
+                            # SEND SHUTDOWN UDP CONNECTION PACKET
                             p = PacketUDP(self.host, 2)
                             print(f'{util.bcolors.OKBLUE}INFO: SENDING SHUTDOWN UDP PACKET{util.bcolors.ENDC}')
                             s.sendto(p.encodeLast(),(address,self.UDP_PORT))
                             time.sleep(1)
                             return
-                        except Exception as e:
-                            print(f'{util.bcolors.FAIL}ERROR: STREAMING ERROR{util.bcolors.ENDC}')
-                    else:
-                        return
+                    except Exception as e:
+                        print(f'{util.bcolors.FAIL}ERROR: STREAMING ERROR{util.bcolors.ENDC}')
+                else:
+                    return
             except Exception as e:
                 print(e)
                 print(F'{util.bcolors.FAIL}WARNING: UDP TRANSFER WENT WRONG{util.bcolors.ENDC}')
