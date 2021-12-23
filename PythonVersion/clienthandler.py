@@ -63,7 +63,7 @@ class ClientHandler():
             s.bind((self.ip,self.UDP_PORT))
             while True:
                 try:
-                    #current_packet = 0
+                    #current_packet = 0 # Devia verificar se o frame que vai receber é o seguinte ao atual
                     data, addr = s.recvfrom(20480)
                     # ip_quem_enviou, ip_final, counter, total_pacotes, conteudo
                     pacote = data.decode('utf-8')
