@@ -177,6 +177,7 @@ class Node:
                     elif packet_type == 'GET':
                         udp = threading.Thread(target=self.open_listen_udp_socket,args=(origin_ip,),daemon=True)
                         if not self.streaming:
+                            self.streaming = True
                             content = header_fields[2]
                             closest_ip = self.rt.getShortestRoute()
                             route = self.rt.getPercurso(closest_ip)
@@ -185,7 +186,6 @@ class Node:
                             print(f'{util.bcolors.OKBLUE}INFO: GET REQUEST FROM {origin_ip} NOW GOING TO {next_ip}{util.bcolors.ENDC}')
                             p = Packet(self.host, 6)
                             self.vizinhos[next_ip].sendall(p.encodeGetRequest(content,ip_origem))
-                            self.streaming = True
                             time.sleep(1)
                         udp.start()
                         udp.join()
