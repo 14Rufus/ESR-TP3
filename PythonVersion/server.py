@@ -114,7 +114,6 @@ class Server:
             try:
                 print(f'{util.bcolors.OKBLUE}INFO: GET REQUEST FROM {address} TO SEND TO  {ip_destino}{util.bcolors.ENDC}')
                 counter = 0
-                #while counter < num_of_packets:
                 if address in self.connected:
                     try:
                         with open(req) as f:

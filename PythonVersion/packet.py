@@ -13,7 +13,6 @@ class Packet:
             2 : 'ROUTING',
             3 : 'ASK_ROUTING',
             4 : 'PING',
-            5 : 'SETUP',
             6 : 'GET',
             7 : 'IS_ALIVE',
             8 : 'AM_ALIVE',
